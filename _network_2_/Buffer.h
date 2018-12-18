@@ -33,6 +33,7 @@ class CBuffer
 public:
 	char *m_pBuffer = nullptr;
 	size_t m_nDataSize = 0;
+
 protected:
 	size_t m_nBufferSize = 0;
 
@@ -133,14 +134,10 @@ public:
 
 			pMark = m_pHead;
 			memcpy(pDest+gap, pMark, nReqSize - gap);
-			//pRead += (bufferSize - readSize);
-			//nDataSize -= bufferSize;
 		}
 		else
 		{
 			memcpy(pDest, m_pRead, nReqSize);
-			//pRead += readSize;
-			//nDataSize -= bufferSize;
 		}
 
 		return nReqSize;
@@ -181,10 +178,10 @@ class CNetworkBuffer
 	: public CBuffer
 {
 public:
-	CConnector *m_pSession = nullptr;
-
 	WSABUF m_WSABuffer = {0,};
 	eNetworkBuffer m_eOperator;
+
+	CConnector *m_pSession = nullptr;
 
 	//
 public:
@@ -199,26 +196,25 @@ public:
 		if( !pData || m_nBufferSize < nDataSize )
 			return -1;
 
-		m_eOperator = eNetworkBuffer::OP_SEND;
-
 		memcpy_s(m_pBuffer, m_nBufferSize, pData, nDataSize);
 		m_nDataSize = nDataSize;
 
-		m_pSession = pSession;
 		m_WSABuffer.buf = m_pBuffer;
 		m_WSABuffer.len = m_nDataSize;
+		m_eOperator = eNetworkBuffer::OP_SEND;
+		m_pSession = pSession;
 
 		return m_nDataSize;
 	}
 
 	int SetRecvData(CConnector *pSession)
 	{
-		m_eOperator = eNetworkBuffer::OP_RECV;
 		m_nDataSize = 0;
 
-		m_pSession = pSession;
 		m_WSABuffer.buf = m_pBuffer;
 		m_WSABuffer.len = m_nBufferSize;
+		m_eOperator = eNetworkBuffer::OP_RECV;
+		m_pSession = pSession;
 
 		return m_nBufferSize;
 	}
@@ -262,7 +258,6 @@ public:
 //
 class CPacketStruct
 	: public CBuffer
-	, public CMemoryPool<CPacketStruct>
 {
 public:
 	CConnector *pSession = nullptr;

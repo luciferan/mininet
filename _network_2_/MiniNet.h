@@ -11,12 +11,13 @@
 #include <process.h>
 #include <wchar.h>
 
-#include "Connector.h"
-#include "Buffer.h"
-#include "PacketDataQueue.h"
-//#include "../_common/util_String.h"
-#include "../_common/util.h"
-#include "../_common/ExceptionReport.h"
+#include <queue>
+
+//#include "Connector.h"
+//#include "Buffer.h"
+//#include "PacketDataQueue.h"
+//#include "../_common/util.h"
+//#include "../_common/ExceptionReport.h"
 
 //
 enum eNetwork
@@ -35,6 +36,8 @@ enum eNetwork
 	MAX_LOG_BUFFER_SIZE = 1024 * 10,
 };
 
+class CConnector;
+
 //
 class CMiniNet
 {
@@ -43,11 +46,10 @@ public:
 
 	HANDLE m_hAcceptThread = INVALID_HANDLE_VALUE;
 	HANDLE m_hWorkerThread[eNetwork::MAX_THREAD_COUNT] = {INVALID_HANDLE_VALUE,};
-	HANDLE m_hSenderThread = INVALID_HANDLE_VALUE;
-	HANDLE m_hPacketThread = INVALID_HANDLE_VALUE;
+	HANDLE m_hUpdateThread = INVALID_HANDLE_VALUE;
 
 	//
-	//char m_szListenIP[eNetwork::MAX_LEN_IPV4_STRING + 1] = {0,};
+	char m_szListenIP[eNetwork::MAX_LEN_IPV4_STRING + 1] = {0,};
 	WCHAR m_wcsListenIP[eNetwork::MAX_LEN_IPV4_STRING + 1] = {0,};
 	WORD m_wListenPort = 0;
 
@@ -57,9 +59,6 @@ public:
 	//
 	DWORD m_dwRunning = 0;
 
-	HANDLE m_hRecvQueueEvent = INVALID_HANDLE_VALUE;
-	HANDLE m_hSendQueueEvent = INVALID_HANDLE_VALUE;
-
 	//
 private:
 	CMiniNet(void);
@@ -68,7 +67,7 @@ private:
 public:
 	static CMiniNet& GetInstance()
 	{
-		static CMiniNet *pInstance = new CMiniNet();
+		static CMiniNet *pInstance = new CMiniNet;
 		return *pInstance;
 	}
 
@@ -76,20 +75,19 @@ public:
 	bool Finalize();
 		 
 	bool Start();
+	bool ListenStart(WCHAR *pwcsListenIP, const WORD wListenPort);
 	bool Stop();
 
 	static unsigned int WINAPI AcceptThread(void *p);
 	static unsigned int WINAPI WorkerThread(void *p);
+	static unsigned int WINAPI UpdateThread(void *p);
 
-	static unsigned int WINAPI PacketProcess(void *p);
-	static unsigned int WINAPI SendThread(void *p);
-	static unsigned int WINAPI DoUpdate(void *p);
-
+	bool lookup_host(const char *hostname, std::string &hostIP);
 	bool Listen(WCHAR *pwcsListenIP, const WORD wListenPort);
 	CConnector* Connect(WCHAR * pwcszIP, const WORD wPort);
 
-	BOOL Disconnect(CConnector *pSession);
-	BOOL Disconnect(SOCKET socket);
+	bool Disconnect(CConnector *pSession);
+	bool Disconnect(SOCKET socket);
 	
 	int Write(CConnector *pSession, char *pSendData, int iSendDataSize);
 	int InnerWrite(CConnector *pSession, char *pSendData, int nSendDataSize);

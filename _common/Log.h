@@ -23,4 +23,7 @@ public:
 };
 
 //
+extern CLog g_Log;
+
+//
 #endif //__LOG_H__

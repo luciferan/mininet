@@ -1,16 +1,20 @@
 #include "Connector.h"
+#include "PacketDataQueue.h"
 
 //
-CConnector::CConnector()
+CConnector::CConnector(DWORD dwUniqueIndex)
 {
-	//m_dwUniqueIndex = CConnectorMgr::GetInstance().GetUniqueIndex();
-	m_dwUniqueIndex = CConnectorMgr::GetInstance().RegistConnector(this);
+	m_dwUniqueIndex = dwUniqueIndex;
 }
 
 CConnector::~CConnector()
 {
 	Finalize();
-	CConnectorMgr::GetInstance().RemoveConnector(this);
+}
+
+bool CConnector::Initialize()
+{
+	return true;
 }
 
 bool CConnector::Finalize()
@@ -32,6 +36,8 @@ void CConnector::SetDomain(WCHAR *pwcsDomain, WORD wPort)
 
 	size_t converted = 0;
 	wcstombs_s(&converted, m_szDomain, eSession::MAX_LEN_DOMAIN_STRING, m_wcsDomain, eSession::MAX_LEN_DOMAIN_STRING);
+
+	return;
 }
 
 void CConnector::GetSocket2IP(char *pszIP)
@@ -40,7 +46,8 @@ void CConnector::GetSocket2IP(char *pszIP)
 	int iLen = sizeof(SockAddr);
 
 	getpeername(m_Socket, (sockaddr*)&SockAddr, &iLen);
-	strncpy_s(pszIP, eSession::MAX_LEN_IP4_STRING, inet_ntoa(SockAddr.sin_addr), iLen);
+	//strncpy_s(pszIP, eSession::MAX_LEN_IP4_STRING, inet_ntoa(SockAddr.sin_addr), iLen);
+	inet_ntop(AF_INET, &SockAddr.sin_addr, pszIP, eSession::MAX_LEN_IP4_STRING);
 }
 
 void CConnector::ConvertSocket2IP()
@@ -49,63 +56,50 @@ void CConnector::ConvertSocket2IP()
 	int iLen = sizeof(SockAddr);
 
 	getpeername(m_Socket, (sockaddr*)&SockAddr, &iLen);
-	strncpy_s(m_szDomain, eSession::MAX_LEN_IP4_STRING, inet_ntoa(SockAddr.sin_addr), iLen);
+	//strncpy_s(m_szDomain, eSession::MAX_LEN_IP4_STRING, inet_ntoa(SockAddr.sin_addr), iLen);
+	inet_ntop(AF_INET, &SockAddr.sin_addr, m_szDomain, _countof(m_szDomain));
 
 	size_t convert = 0;
 	mbstowcs_s(&convert, m_wcsDomain, eSession::MAX_LEN_IP4_STRING, m_szDomain, eSession::MAX_LEN_IP4_STRING);
 }
 
-int CConnector::AddRecvData(CNetworkBuffer *pBuffer)
+//
+int CConnector::AddSendQueue(char *pSendData, DWORD dwSendDataSize)
 {
-	int nDataSize = pBuffer->GetDataSize();
-	char *pData = pBuffer->GetBuffer();
-
-	int nEmptySize = m_RecvDataBuffer.GetEmptySize();
-	if( nEmptySize < nDataSize )
+	CNetworkBuffer *pSendBuffer = new CNetworkBuffer;
+	if( !pSendBuffer )
 		return -1;
 
-	m_RecvDataBuffer.Write(pData, nDataSize);
-	return m_RecvDataBuffer.GetDataSize();
+	int nRet = pSendBuffer->SetSendData(this, pSendData, dwSendDataSize);
+	if( 0 > nRet )
+	{
+		SAFE_DELETE(pSendBuffer);
+		return -1;
+	}
+
+	//
+	CScopeLock lock(m_SendQueueLock);
+	m_SendQueue.push(pSendBuffer);
+
+	return m_SendQueue.size();
 }
 
-int CConnector::DataParsing()
+int CConnector::SendPrepare()
 {
-	int nPacketLength = 0;
-	m_RecvDataBuffer.Read((char*)&nPacketLength, sizeof(int));
-
-	if( m_RecvDataBuffer.GetDataSize() < nPacketLength )
+	if( m_SendQueue.empty() )
+		return 0;
+	if( 0 < m_dwSendRef ) 
 		return 0;
 
-	return nPacketLength;
-}
+	CScopeLock lock(m_SendQueueLock);
 
-//int CConnector::DataParsing()
-//{
-//	int nPacketLength = 0;
-//	m_RecvDataBuffer.Read((char*)&nPacketLength, sizeof(int));
-//	nPacketLength = htonl(nPacketLength);
-//
-//	if( m_RecvDataBuffer.GetDataSize() < nPacketLength )
-//		return 0;
-//
-//	return nPacketLength;
-//}
-
-int CConnector::SendRequest(char *pSendData, int nSendDataSize)
-{
-	if( !pSendData )
-		return -1;
-	if( eBuffer::MAX_PACKET_BUFFER_SIZE < nSendDataSize )
-		return -1;
-
-	CNetworkBuffer *pBuffer = new CNetworkBuffer();
-	if( !pBuffer )
-		return -1;
+	CNetworkBuffer *pSendData = m_SendQueue.front();
+	m_SendQueue.pop();
 
 	m_SendRequest.ResetOverlapped();
-	m_SendRequest.pSession = this;
-	m_SendRequest.pBuffer = pBuffer;
-	return pBuffer->SetSendData(this, pSendData, nSendDataSize);
+	m_SendRequest.pBuffer = pSendData;
+	
+	return pSendData->GetDataSize();
 }
 
 int CConnector::SendComplete(DWORD dwSendSize)
@@ -134,65 +128,159 @@ int CConnector::SendComplete(DWORD dwSendSize)
 
 WSABUF* CConnector::GetSendWSABuffer()
 {
-	if( m_SendRequest.pBuffer )
-		return &m_SendRequest.pBuffer->m_WSABuffer;
-	return nullptr;
+	//if( m_SendRequest.pBuffer )
+	return &m_SendRequest.pBuffer->m_WSABuffer;
+	//return nullptr;
 }
 
-int CConnector::RecvRequest()
+int CConnector::RecvPrepare()
 {
-	CNetworkBuffer *pBuffer = new CNetworkBuffer();
-	if( !pBuffer )
+	if( !m_RecvRequest.pBuffer )
+	{
+		CNetworkBuffer *pBuffer = new CNetworkBuffer;
+		if( !pBuffer )
+			return 0;
+
+		m_RecvRequest.ResetOverlapped();
+		m_RecvRequest.pSession = this;
+		m_RecvRequest.pBuffer = pBuffer;
+	}
+	else
+	{
+		m_RecvRequest.ResetOverlapped();
+		m_RecvRequest.pBuffer->Reset();
+	}
+
+	int nRet = m_RecvRequest.pBuffer->SetRecvData(this);
+	if( nRet )
+		InterlockedIncrement(&m_dwRecvRef);
+
+	return nRet;
+}
+
+int CConnector::RecvComplete(DWORD dwRecvSize)
+{
+	char *pRecvData = m_RecvRequest.pBuffer->m_pBuffer;
+	m_RecvRequest.pBuffer->m_nDataSize = dwRecvSize;
+
+	InterlockedDecrement(&m_dwRecvRef);
+
+	//
+	int nEmptySize = m_RecvDataBuffer.GetEmptySize();
+	if( nEmptySize < dwRecvSize )
+		return -1;
+
+	m_RecvDataBuffer.Write(pRecvData, dwRecvSize);
+
+	//
+	int nPacketLength = DataParsing();
+	if( 0 < nPacketLength )
+	{
+		CPacketStruct *pPacket = CRecvPacketQueue::GetInstance().GetFreePacketStruct();
+		if( !pPacket )
+			return -1;
+
+		pPacket->pSession = this;
+		pPacket->m_nDataSize = m_RecvDataBuffer.Read(pPacket->m_pBuffer, nPacketLength);
+		m_RecvDataBuffer.Erase(nPacketLength);
+
+		//
+		CRecvPacketQueue::GetInstance().Push(pPacket);
+	}
+
+	return m_RecvDataBuffer.GetDataSize();
+}
+
+int CConnector::DataParsing()
+{
+	int nPacketLength = 0;
+	m_RecvDataBuffer.Read((char*)&nPacketLength, sizeof(int));
+
+	if( m_RecvDataBuffer.GetDataSize() < nPacketLength )
 		return 0;
 
-	m_RecvRequest.ResetOverlapped();
-	m_RecvRequest.pSession = this;
-	m_RecvRequest.pBuffer = pBuffer;
-	return pBuffer->SetRecvData(this);
+	return nPacketLength;
 }
+
+//int CConnector::DataParsing()
+//{
+//	int nPacketLength = 0;
+//	m_RecvDataBuffer.Read((char*)&nPacketLength, sizeof(int));
+//	nPacketLength = htonl(nPacketLength);
+//
+//	if( m_RecvDataBuffer.GetDataSize() < nPacketLength )
+//		return 0;
+//
+//	return nPacketLength;
+//}
 
 WSABUF* CConnector::GetRecvWSABuffer()
 {
-	if( m_RecvRequest.pBuffer )
-		return &m_RecvRequest.pBuffer->m_WSABuffer;
-	return nullptr;
+	//if( m_RecvRequest.pBuffer )
+	return &m_RecvRequest.pBuffer->m_WSABuffer;
+	//return nullptr;
 }
 
-int CConnector::InnerRequest(char *pSendData, int nSendDataSize)
+int CConnector::AddInnerQueue(char *pSendData, DWORD dwSendDataSize)
 {
 	if( !pSendData )
 		return -1;
-	if( eBuffer::MAX_PACKET_BUFFER_SIZE < nSendDataSize )
+	if( eBuffer::MAX_PACKET_BUFFER_SIZE < dwSendDataSize )
 		return -1;
 
-	CNetworkBuffer *pBuffer = new CNetworkBuffer();
+	CNetworkBuffer *pBuffer = new CNetworkBuffer;
 	if( !pBuffer )
+		return -1;
+	int nRet = pBuffer->SetInnerData(this, pSendData, dwSendDataSize);
+	if( 0 > nRet )
+	{
+		SAFE_DELETE(pBuffer);
+		return -1;
+	}
+
+	//
+	CScopeLock lock(m_InnerQueueLock);
+	m_InnerQueue.push(pBuffer);
+
+	return m_InnerQueue.size();
+}
+
+int CConnector::InnerPrepare()
+{
+	if( m_InnerQueue.empty() )
+		return 0;
+	if( 0 < m_dwInnerRef )
 		return 0;
 
+	CScopeLock lock(m_InnerQueueLock);
+
+	CNetworkBuffer *pPacket = m_InnerQueue.front();
+	m_InnerQueue.pop();
+
 	m_InnerRequest.ResetOverlapped();
-	m_InnerRequest.pSession = this;
-	m_InnerRequest.pBuffer = pBuffer;
-	return pBuffer->SetInnerData(this, pSendData, nSendDataSize);
+	m_InnerRequest.pBuffer = pPacket;
+
+	return pPacket->GetDataSize();
 }
 
 int CConnector::InnerComplete(DWORD dwInnerSize)
 {
 	CNetworkBuffer *pBuffer = m_InnerRequest.pBuffer;
 	if( !pBuffer )
-		return 0;
+		return -1;
+	CPacketStruct *pPacket = (CPacketStruct*)pBuffer;
 
-	SAFE_DELETE(pBuffer);
-	m_InnerRequest.pBuffer = nullptr;
-	m_InnerRequest.ResetOverlapped();
+	//
+	CRecvPacketQueue::GetInstance().Push(pPacket);
 
 	return 0;
 }
 
 WSABUF* CConnector::GetInnerWSABuffer()
 {
-	if( m_InnerRequest.pBuffer )
-		return &m_InnerRequest.pBuffer->m_WSABuffer;
-	return nullptr;
+	//if( m_InnerRequest.pBuffer )
+	return &m_InnerRequest.pBuffer->m_WSABuffer;
+	//return nullptr;
 }
 
 void CConnector::DoUpdate()

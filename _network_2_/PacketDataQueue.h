@@ -123,6 +123,23 @@ public:
 		}
 		return pPacket;
 	}
+
+	CPacketStruct* GetFreePacketStruct()
+	{
+		CPacketStruct *pPacket = new CPacketStruct;
+		if( !pPacket )
+			return nullptr;
+
+		return pPacket;
+	}
+
+	void ReleasePacketStruct(CPacketStruct *pPacket)
+	{
+		if( !pPacket )
+			return;
+
+		SAFE_DELETE(pPacket);
+	}
 };
 
 //
