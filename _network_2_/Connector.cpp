@@ -1,5 +1,9 @@
 #include "Connector.h"
-#include "PacketDataQueue.h"
+#include "./PacketDataQueue.h"
+#include "./MiniNet.h"
+
+#include "../_common/util_Time.h"
+
 
 //
 CConnector::CConnector(DWORD dwUniqueIndex)
@@ -64,6 +68,11 @@ void CConnector::ConvertSocket2IP()
 }
 
 //
+int CConnector::AddSendData(char *pSendData, DWORD dwSendDataSize)
+{
+	return CMiniNet::GetInstance().Write(this, pSendData, dwSendDataSize);
+}
+
 int CConnector::AddSendQueue(char *pSendData, DWORD dwSendDataSize)
 {
 	CNetworkBuffer *pSendBuffer = new CNetworkBuffer;
@@ -97,7 +106,10 @@ int CConnector::SendPrepare()
 	m_SendQueue.pop();
 
 	m_SendRequest.ResetOverlapped();
+	m_SendRequest.pSession = this;
 	m_SendRequest.pBuffer = pSendData;
+
+	IncSendRef();
 	
 	return pSendData->GetDataSize();
 }
@@ -118,6 +130,8 @@ int CConnector::SendComplete(DWORD dwSendSize)
 	}
 	else
 	{
+		DecSendRef();
+
 		SAFE_DELETE(pBuffer);
 		m_SendRequest.pBuffer = nullptr;
 		m_SendRequest.ResetOverlapped();
@@ -283,6 +297,26 @@ WSABUF* CConnector::GetInnerWSABuffer()
 	//return nullptr;
 }
 
-void CConnector::DoUpdate()
+void CConnector::DoUpdate(INT64 biCurrTime)
 {
+	if( m_biUpdateTime < biCurrTime )
+	{
+		m_biUpdateTime = biCurrTime + MILLISEC_A_SEC;
+	}
+
+	//
+	if( m_biHeartBeatTime < biCurrTime )
+	{
+		m_biHeartBeatTime = biCurrTime + MILLISEC_A_SEC;
+
+		//
+		
+		
+
+		//AddSendData((char*)&SendPacket, sizeof(SendPacket));
+	}
+
+	//
+	
+	return;
 }

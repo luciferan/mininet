@@ -9,11 +9,24 @@
 
 #include "Buffer.h"
 #include "../_common/SafeLock.h"
+#include "../_common/Protocol.h"
 
 //
 enum ePacketDataQueue
 {
 	MAX_PACKET_QUEUE_PHASE = 4,
+};
+
+//
+class CPacketStruct
+	: public CBuffer
+{
+public:
+	CConnector *pSession = nullptr;
+
+public:
+	CPacketStruct() {};
+	virtual ~CPacketStruct() {};
 };
 
 //

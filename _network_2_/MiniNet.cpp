@@ -319,13 +319,25 @@ unsigned int WINAPI CMiniNet::WorkerThread(void *p)
 				WriteMiniNetLog(FormatW(L"log: MiniNet::WorkerThread() : <%d> Disconnect. IP %s, Socket %d", pConnector->GetIndex(), pConnector->GetDomain(), pConnector->GetSocket()));
 
 				//
-				if( INVALID_SOCKET != pConnector->GetSocket() )
+				if( pConnector->GetSendRef() || pConnector->GetRecvRef() || pConnector->GetInnerRef() )
 				{
-					shutdown(pConnector->GetSocket(), SD_BOTH);
-					closesocket(pConnector->GetSocket());
+					switch( pNetworkBuffer->GetOperator() )
+					{
+						case eNetworkBuffer::OP_SEND: pConnector->DecSendRef(); break;
+						case eNetworkBuffer::OP_RECV: pConnector->DecRecvRef(); break;
+						case eNetworkBuffer::OP_INNER: pConnector->DecInnerRef(); break;
+					}
 				}
+				else
+				{
+					if( INVALID_SOCKET != pConnector->GetSocket() )
+					{
+						shutdown(pConnector->GetSocket(), SD_BOTH);
+						closesocket(pConnector->GetSocket());
+					}
 
-				ConnectMgr.ReleaseConnector(pConnector); //SAFE_DELETE(pConnector);
+					ConnectMgr.ReleaseConnector(pConnector); //SAFE_DELETE(pConnector);
+				}
 			}
 			else
 			{
@@ -343,13 +355,13 @@ unsigned int WINAPI CMiniNet::WorkerThread(void *p)
 				WriteMiniNetLog(FormatW(L"debug: MiniNet::WorkerThread() : <%d> SendResult : socket:%d. SendRequestSize %d, SendSize %d", pConnector->GetIndex(), pConnector->GetSocket(), (int)pNetworkBuffer->m_nDataSize, dwIOSize));
 				WritePacketLog(FormatW(L"debug: MiniNet::WorkerThread(): <%d> SendData:", pConnector->GetIndex()), pNetworkBuffer->m_pBuffer, dwIOSize);
 
-				// 송신 완료
+				// 전송 완료
 				DWORD dwRemainData = pConnector->SendComplete(dwIOSize);
 
 				//
 				if( 0 < dwRemainData || 0 < pConnector->SendPrepare() )
 				{
-					// 계속 송신
+					// 계속 전송
 					iRet = WSASend(pConnector->GetSocket(), pConnector->GetSendWSABuffer(), 1, &dwSendDataSize, 0, pConnector->GetSendOverlapped(), NULL);
 					if( SOCKET_ERROR == iRet )
 					{
@@ -371,9 +383,10 @@ unsigned int WINAPI CMiniNet::WorkerThread(void *p)
 				// 수신 완료
 				pConnector->RecvComplete(dwIOSize);
 
-				// 계속 수신
+				//
 				if( 0 < pConnector->RecvPrepare() )
 				{
+					// 계속 수신
 					iRet = WSARecv(pConnector->GetSocket(), pConnector->GetRecvWSABuffer(), 1, &dwRecvDataSize, &dwFlags, pConnector->GetRecvOverlapped(), NULL);
 					if( SOCKET_ERROR == iRet )
 					{
@@ -399,7 +412,7 @@ unsigned int WINAPI CMiniNet::WorkerThread(void *p)
 				// 내부 수신처리
 				pConnector->InnerComplete(dwIOSize);
 
-				// 내부 발송처리
+				// 내부 전송처리
 				int nRemainData = pConnector->InnerPrepare();
 				if( 0 < nRemainData )
 				{
@@ -436,15 +449,18 @@ unsigned int WINAPI CMiniNet::UpdateThread(void *p)
 	CConnector *pConnector = nullptr;
 	void *pParam = nullptr;
 
+	INT64 biCurrTime = 0;
+
 	//
 	while( 1 == InterlockedExchange((long*)&dwRunning, dwRunning) )
 	{
+		biCurrTime = GetTimeMilliSec();
+
 		{
 			CScopeLock lock(ConnectMgr.m_Lock);
-			for( auto connector : ConnectMgr.m_UsedConnectorList )
+			for( auto pConnector : ConnectMgr.m_UsedConnectorList )
 			{
-				pConnector = connector;
-				pConnector->DoUpdate();
+				pConnector->DoUpdate(biCurrTime);
 			}
 		}
 

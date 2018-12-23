@@ -238,34 +238,4 @@ public:
 };
 
 //
-class CPacketBuffer
-	: public CBuffer
-{
-public:
-	CConnector *pSession = nullptr;
-	void *pParam = nullptr;
-
-	WSABUF wsaBuffer = {0,};
-	DWORD dwSendDataSize = 0;
-	DWORD dwRecvDataSize = 0;
-
-	//
-public:
-	CPacketBuffer() {};
-	virtual ~CPacketBuffer() {};
-};
-
-//
-class CPacketStruct
-	: public CBuffer
-{
-public:
-	CConnector *pSession = nullptr;
-
-public:
-	CPacketStruct() {};
-	virtual ~CPacketStruct() {};
-};
-
-//
 #endif //__BUFFER_H__

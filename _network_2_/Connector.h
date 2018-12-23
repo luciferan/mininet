@@ -58,7 +58,7 @@ public:
 	// send
 	OVERLAPPED_EX m_SendRequest; 
 	CLock m_SendQueueLock;
-	queue<CNetworkBuffer*> m_SendQueue; // 여기있는걸 send 합니다. 최대 갯수를 넘어가면 전송량에 비해 보내야되는 패킷이 많은것
+	queue<CNetworkBuffer*> m_SendQueue = {}; // 여기있는걸 send 합니다. 최대 갯수를 넘어가면 전송량에 비해 보내야되는 패킷이 많은것
 	DWORD m_dwSendRef = 0;
 
 	// recv
@@ -69,8 +69,12 @@ public:
 	// inner
 	OVERLAPPED_EX m_InnerRequest;
 	CLock m_InnerQueueLock;
-	queue<CNetworkBuffer*> m_InnerQueue; //
+	queue<CNetworkBuffer*> m_InnerQueue = {}; //
 	DWORD m_dwInnerRef = 0;
+
+	//
+	INT64 m_biUpdateTime = 0;
+	INT64 m_biHeartBeatTime = 0;
 
 	//
 public:
@@ -102,6 +106,7 @@ public:
 	WORD GetPort() { return m_wPort; }
 
 	//
+	int AddSendData(char *pSendData, DWORD dwSendDataSize);
 	int AddSendQueue(char *pSendData, DWORD dwSendDataSize); // ret: sendqueue.size
 	int SendPrepare(); //ret: send data size
 	int SendComplete(DWORD dwSendSize); // ret: remain send data size
@@ -135,7 +140,7 @@ public:
 	DWORD GetInnerRef() { return m_dwInnerRef; }
 
 	//
-	virtual void DoUpdate();
+	virtual void DoUpdate(INT64 biCurrTime);
 };
 
 //
@@ -215,9 +220,6 @@ public:
 			{
 				m_UsedConnectorList.remove(pConnector);
 				m_FreeConnectorList.push_back(pConnector);
-			}
-			else
-			{
 			}
 		}
 	}
