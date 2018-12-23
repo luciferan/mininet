@@ -123,6 +123,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DefaultConfig.cpp" />
     <ClCompile Include="ExceptionReport.cpp" />
     <ClCompile Include="Log.cpp" />
     <ClCompile Include="MemoryPool.cpp" />
@@ -132,9 +133,11 @@
     <ClCompile Include="util_Time.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DefaultConfig.h" />
     <ClInclude Include="ExceptionReport.h" />
     <ClInclude Include="Log.h" />
     <ClInclude Include="MemoryPool.h" />
+    <ClInclude Include="Protocol.h" />
     <ClInclude Include="SafeLock.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="util_common.h" />

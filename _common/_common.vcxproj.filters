@@ -1,66 +1,105 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="소스 파일">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="헤더 파일">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
-    </Filter>
     <Filter Include="리소스 파일">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="_util">
+      <UniqueIdentifier>{e4f0ea36-f087-4c08-b09f-b87802ca12c4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_map">
+      <UniqueIdentifier>{c19d866b-3a22-4607-abbe-49b863a3f421}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_Character">
+      <UniqueIdentifier>{dbd9f674-7623-47ed-a823-bba4ad2d2b7b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Protocol">
+      <UniqueIdentifier>{3e023855-cbb3-40f1-8721-ab7648bd3621}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ExceptionReport.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="MemoryPool.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="SafeLock.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="util_common.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="util_String.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="util_Time.cpp">
-      <Filter>소스 파일</Filter>
+      <Filter>_util</Filter>
     </ClCompile>
     <ClCompile Include="Log.cpp">
-      <Filter>소스 파일</Filter>
+      <Filter>_util</Filter>
     </ClCompile>
+    <ClCompile Include="MemoryPool.cpp">
+      <Filter>_util</Filter>
+    </ClCompile>
+    <ClCompile Include="util_common.cpp">
+      <Filter>_util</Filter>
+    </ClCompile>
+    <ClCompile Include="util_String.cpp">
+      <Filter>_util</Filter>
+    </ClCompile>
+    <ClCompile Include="util_Time.cpp">
+      <Filter>_util</Filter>
+    </ClCompile>
+    <ClCompile Include="World.cpp">
+      <Filter>_map</Filter>
+    </ClCompile>
+    <ClCompile Include="Block.cpp">
+      <Filter>_map</Filter>
+    </ClCompile>
+    <ClCompile Include="Region.cpp">
+      <Filter>_map</Filter>
+    </ClCompile>
+    <ClCompile Include="Zone.cpp">
+      <Filter>_map</Filter>
+    </ClCompile>
+    <ClCompile Include="CharacterBase.cpp">
+      <Filter>_Character</Filter>
+    </ClCompile>
+    <ClCompile Include="SafeLock.cpp">
+      <Filter>_util</Filter>
+    </ClCompile>
+    <ClCompile Include="DefaultConfig.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ExceptionReport.h">
-      <Filter>소스 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="MemoryPool.h">
-      <Filter>소스 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="SafeLock.h">
-      <Filter>소스 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="util.h">
-      <Filter>소스 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="util_common.h">
-      <Filter>소스 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="util_String.h">
-      <Filter>소스 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="util_Time.h">
-      <Filter>소스 파일</Filter>
+      <Filter>_util</Filter>
     </ClInclude>
     <ClInclude Include="Log.h">
-      <Filter>소스 파일</Filter>
+      <Filter>_util</Filter>
     </ClInclude>
+    <ClInclude Include="MemoryPool.h">
+      <Filter>_util</Filter>
+    </ClInclude>
+    <ClInclude Include="util.h">
+      <Filter>_util</Filter>
+    </ClInclude>
+    <ClInclude Include="util_common.h">
+      <Filter>_util</Filter>
+    </ClInclude>
+    <ClInclude Include="util_String.h">
+      <Filter>_util</Filter>
+    </ClInclude>
+    <ClInclude Include="util_Time.h">
+      <Filter>_util</Filter>
+    </ClInclude>
+    <ClInclude Include="World.h">
+      <Filter>_map</Filter>
+    </ClInclude>
+    <ClInclude Include="Zone.h">
+      <Filter>_map</Filter>
+    </ClInclude>
+    <ClInclude Include="Block.h">
+      <Filter>_map</Filter>
+    </ClInclude>
+    <ClInclude Include="Region.h">
+      <Filter>_map</Filter>
+    </ClInclude>
+    <ClInclude Include="CharacterBase.h">
+      <Filter>_Character</Filter>
+    </ClInclude>
+    <ClInclude Include="SafeLock.h">
+      <Filter>_util</Filter>
+    </ClInclude>
+    <ClInclude Include="Protocol.h">
+      <Filter>Protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="DefaultConfig.h" />
   </ItemGroup>
 </Project>
