@@ -1,10 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="리소스 파일">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
     <Filter Include="_util">
       <UniqueIdentifier>{e4f0ea36-f087-4c08-b09f-b87802ca12c4}</UniqueIdentifier>
     </Filter>
@@ -37,21 +33,6 @@
     <ClCompile Include="util_Time.cpp">
       <Filter>_util</Filter>
     </ClCompile>
-    <ClCompile Include="World.cpp">
-      <Filter>_map</Filter>
-    </ClCompile>
-    <ClCompile Include="Block.cpp">
-      <Filter>_map</Filter>
-    </ClCompile>
-    <ClCompile Include="Region.cpp">
-      <Filter>_map</Filter>
-    </ClCompile>
-    <ClCompile Include="Zone.cpp">
-      <Filter>_map</Filter>
-    </ClCompile>
-    <ClCompile Include="CharacterBase.cpp">
-      <Filter>_Character</Filter>
-    </ClCompile>
     <ClCompile Include="SafeLock.cpp">
       <Filter>_util</Filter>
     </ClCompile>
@@ -78,21 +59,6 @@
     </ClInclude>
     <ClInclude Include="util_Time.h">
       <Filter>_util</Filter>
-    </ClInclude>
-    <ClInclude Include="World.h">
-      <Filter>_map</Filter>
-    </ClInclude>
-    <ClInclude Include="Zone.h">
-      <Filter>_map</Filter>
-    </ClInclude>
-    <ClInclude Include="Block.h">
-      <Filter>_map</Filter>
-    </ClInclude>
-    <ClInclude Include="Region.h">
-      <Filter>_map</Filter>
-    </ClInclude>
-    <ClInclude Include="CharacterBase.h">
-      <Filter>_Character</Filter>
     </ClInclude>
     <ClInclude Include="SafeLock.h">
       <Filter>_util</Filter>

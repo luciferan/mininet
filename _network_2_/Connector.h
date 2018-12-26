@@ -87,8 +87,8 @@ public:
 	DWORD GetUniqueIndex() { return m_dwUniqueIndex; }
 	DWORD GetIndex() { return m_dwUniqueIndex; }
 	
-	void SetActive() { InterlockedIncrement(&m_dwActive); }
-	void SetDeactive() { InterlockedDecrement(&m_dwActive); }
+	void SetActive() { InterlockedExchange(&m_dwActive, 1); }
+	void SetDeactive() { InterlockedExchange(&m_dwActive, 0); }
 	DWORD GetActive() { return InterlockedExchange(&m_dwActive, m_dwActive); }
 
 	void* SetParam(void *pParam) { return m_pParam = pParam; }
@@ -105,7 +105,7 @@ public:
 	WCHAR* GetDomain() { return m_wcsDomain; }
 	WORD GetPort() { return m_wPort; }
 
-	//
+	// send
 	int AddSendData(char *pSendData, DWORD dwSendDataSize);
 	int AddSendQueue(char *pSendData, DWORD dwSendDataSize); // ret: sendqueue.size
 	int SendPrepare(); //ret: send data size
@@ -128,7 +128,7 @@ public:
 	DWORD DecRecvRef() { InterlockedDecrement(&m_dwRecvRef); return m_dwRecvRef; }
 	DWORD GetRecvRef() { return m_dwRecvRef; }
 
-	//
+	// inner
 	int AddInnerQueue(char *pSendData, DWORD dwSendDataSize);
 	int InnerPrepare();
 	int InnerComplete(DWORD dwInnerSize);

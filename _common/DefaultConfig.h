@@ -15,10 +15,12 @@ public:
 public:
 	CIniFile();
 	virtual ~CIniFile();
+	void SetConfigFile(wstring wstrFileName);
 
-	bool GetValue(LPCWSTR appName, LPCWSTR keyName, LPINT pValue, INT nDefaultValue = -1);
-	bool GetValue(LPCWSTR appName, LPCWSTR keyName, LPWORD pValue, WORD dwDefaultValue = -1);
-	bool GetValue(LPCWSTR appName, LPCWSTR keyName, LPWSTR pwcsResult, DWORD dwResultLen);
+	void GetValue(LPCWSTR appName, LPCWSTR keyName, WORD &wValue, WORD wDefaultValue = -1);
+	void GetValue(LPCWSTR appName, LPCWSTR keyName, INT &nValue, INT nDefaultValue = -1);
+	void GetValue(LPCWSTR appName, LPCWSTR keyName, INT64 &biValue, INT64 biDefaultValue = -1);
+	void GetValue(LPCWSTR appName, LPCWSTR keyName, LPWSTR pwcsResult, DWORD dwResultLen);
 };
 
 //

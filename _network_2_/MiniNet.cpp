@@ -450,6 +450,7 @@ unsigned int WINAPI CMiniNet::UpdateThread(void *p)
 	void *pParam = nullptr;
 
 	INT64 biCurrTime = 0;
+	INT64 biLastUpdateLog = GetTimeMilliSec() + (MILLISEC_A_SEC * 30);
 
 	//
 	while( 1 == InterlockedExchange((long*)&dwRunning, dwRunning) )
@@ -463,6 +464,8 @@ unsigned int WINAPI CMiniNet::UpdateThread(void *p)
 				pConnector->DoUpdate(biCurrTime);
 			}
 		}
+
+		
 
 		//
 		Sleep(1);
@@ -726,7 +729,11 @@ int CMiniNet::Write(CConnector *pConnector, char *pSendData, int iSendDataSize)
 	}
 
 	// 전송데이터 셋팅
-	pConnector->AddSendQueue(pSendData, iSendDataSize);
+	if( 0 > pConnector->AddSendQueue(pSendData, iSendDataSize) )
+	{
+		WriteMiniNetLog(FormatW(L"error: MiniNet::Write(): <%d> Invalid send data %d", pConnector->GetIndex(), pConnector->GetSocket()));
+		return eNetwork::RESULT_FAIL;
+	}
 
 	//
 	if( 0 >= pConnector->GetSendRef() )

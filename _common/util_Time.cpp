@@ -41,17 +41,6 @@ CTimeSet::CTimeSet(TIMESTAMP_STRUCT dbTimeStamp)
 
 void CTimeSet::SetTime()
 {
-	//struct tm *ptmTime = nullptr;
-
-	//_time64(&m_tGMT);
-	//ptmTime = _gmtime64(&m_tGMT);
-	//m_tmGMT = *ptmTime;
-
-	//ptmTime = localtime(&m_tGMT);
-	//m_tmLocalT = *ptmTime;
-	//m_tLocalT = _mkgmtime(&m_tmLocalT);
-
-	//
 	_time64(&m_tGMT);
 	_gmtime64_s(&m_tmGMT, &m_tGMT);
 	_localtime64_s(&m_tmLocalT, &m_tGMT);
@@ -67,12 +56,8 @@ void CTimeSet::SetTime(__time64_t tTime, bool bGMT)
 	else
 		m_tGMT = ConvertLC2GM(tTime);
 
-	//ptmTime = _gmtime64(&m_tGMT);
-	//m_tmGMT = *ptmTime;
 	_gmtime64_s(&m_tmGMT, &m_tGMT);
 
-	//ptmTime = localtime(&m_tGMT);
-	//m_tmLocalT = *ptmTime;
 	_localtime64_s(&m_tmLocalT, &m_tGMT);
 	m_tLocalT = _mkgmtime64(&m_tmLocalT);
 }
@@ -87,6 +72,7 @@ void CTimeSet::SetTime(int nYear, int nMon, int nDay, int nHour, int nMin, int n
 	tmTime.tm_hour = nHour;
 	tmTime.tm_min = nMin;
 	tmTime.tm_sec = nSec;
+	tmTime.tm_isdst = -1; 
 
 	struct tm *ptmTime = nullptr;
 
@@ -95,12 +81,8 @@ void CTimeSet::SetTime(int nYear, int nMon, int nDay, int nHour, int nMin, int n
 	else
 		m_tGMT = ConvertLC2GM(tmTime);
 
-	//ptmTime = _gmtime64(&m_tGMT);
-	//m_tmGMT = *ptmTime;
 	_gmtime64_s(&m_tmGMT, &m_tGMT);
 
-	//ptmTime = localtime(&m_tGMT);
-	//m_tmLocalT = *ptmTime;
 	localtime_s(&m_tmLocalT, &m_tGMT);
 	m_tLocalT = _mkgmtime64(&m_tmLocalT);
 }
@@ -118,7 +100,6 @@ __time64_t CTimeSet::ConvertLC2GM(__time64_t tTime)
 	struct tm *ptmLocal = NULL;
 
 	_time64(&tGMT);
-	//ptmLocal = localtime(&tGMT);
 	localtime_s(ptmLocal, &tGMT);
 	tLocal = _mkgmtime64(ptmLocal);
 
@@ -136,7 +117,6 @@ __time64_t CTimeSet::ConvertLC2GM(struct tm tmLocal)
 	struct tm *ptmLocal = NULL;
 
 	_time64(&tGMT);
-	//ptmLocal = localtime(&tGMT);
 	localtime_s(ptmLocal, &tGMT);
 	tLocal = _mkgmtime64(ptmLocal);
 

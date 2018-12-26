@@ -27,9 +27,6 @@
     <ClCompile Include="PacketDataQueue.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="SessionBase.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Buffer.h">
@@ -42,9 +39,6 @@
       <Filter>소스 파일</Filter>
     </ClInclude>
     <ClInclude Include="PacketDataQueue.h">
-      <Filter>소스 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="SessionBase.h">
       <Filter>소스 파일</Filter>
     </ClInclude>
   </ItemGroup>

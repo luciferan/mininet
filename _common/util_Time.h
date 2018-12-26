@@ -61,7 +61,7 @@ public:
 	struct tm GetTimeST_LC() { return m_tmLocalT; }
 
 	//
-	int GetYear(bool bLocal = true) { return ( bLocal ? m_tmLocalT.tm_year + 1900 : m_tmGMT.tm_year + 1900 ); }
+	int GetYear(bool bLocal = true) { return ( bLocal ? m_tmLocalT.tm_year : m_tmGMT.tm_year ) + 1900; }
 	int GetMonth(bool bLocal = true) { return ( bLocal ? m_tmLocalT.tm_mon + 1 : m_tmGMT.tm_mon + 1 ); }
 	int GetDay(bool bLocal = true) { return ( bLocal ? m_tmLocalT.tm_mday : m_tmGMT.tm_mday ); }
 	int GetHour(bool bLocal = true) { return ( bLocal ? m_tmLocalT.tm_hour : m_tmGMT.tm_hour ); }

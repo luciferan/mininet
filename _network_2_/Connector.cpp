@@ -310,10 +310,6 @@ void CConnector::DoUpdate(INT64 biCurrTime)
 		m_biHeartBeatTime = biCurrTime + MILLISEC_A_SEC;
 
 		//
-		
-		
-
-		//AddSendData((char*)&SendPacket, sizeof(SendPacket));
 	}
 
 	//

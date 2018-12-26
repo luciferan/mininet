@@ -23,7 +23,7 @@ class CPacketStruct
 {
 public:
 	CConnector *pSession = nullptr;
-
+	
 public:
 	CPacketStruct() {};
 	virtual ~CPacketStruct() {};
