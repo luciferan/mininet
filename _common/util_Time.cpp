@@ -1,4 +1,6 @@
 #include "util_Time.h"
+#include "Log.h"
+
 #include <stdio.h>
 
 //
@@ -16,6 +18,39 @@ INT64 GetTimeMilliSec()
 	_ftime64_s(&tTime);
 
 	return (INT64)(tTime.time * 1000 + tTime.millitm);
+}
+
+//
+CPerformanceCheck::CPerformanceCheck(std::wstring wstrComment)
+{
+	m_wstrComment = wstrComment;
+
+	if( 0 != QueryPerformanceCounter((LARGE_INTEGER*)&m_biPerformanceCount[0]) )
+	{
+		m_bUsePerformanceCount = false;
+		m_biPerformanceCount[0] = GetTimeMilliSec();
+	}
+}
+
+CPerformanceCheck::~CPerformanceCheck()
+{
+	if( m_bUsePerformanceCount )
+	{
+		QueryPerformanceCounter((LARGE_INTEGER*)&m_biPerformanceCount[1]);
+
+		INT64 freq = 0;
+		QueryPerformanceFrequency((LARGE_INTEGER*)&freq);
+
+		m_biPerformance = (m_biPerformanceCount[1] - m_biPerformanceCount[0]) / (freq / 1000000);
+		g_PerformanceLog.write(L"Performance(us): %s (%I64d)", m_wstrComment.c_str(), m_biPerformance);
+	}
+	else
+	{
+		m_biPerformanceCount[1] = GetTimeMilliSec();
+
+		m_biPerformance = (m_biPerformanceCount[1] - m_biPerformanceCount[0]);
+		g_PerformanceLog.write(L"Performance(ms): %s (%I64d)", m_wstrComment.c_str(), m_biPerformance);
+	}
 }
 
 //

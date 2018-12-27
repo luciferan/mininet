@@ -200,6 +200,8 @@ unsigned int WINAPI CMiniNet::AcceptThread(void *p)
 			continue;
 		}
 
+		pConnector->SetActive();
+
 		//
 		if( 0 >= pConnector->RecvPrepare() )
 		{
@@ -682,6 +684,8 @@ bool CMiniNet::Disconnect(CConnector *pConnector)
 		WriteMiniNetLog(FormatW(L"error: MiniNet::Disconnect(): Invalid session object %08X", pConnector));
 		return false;
 	}
+
+	pConnector->SetDeactive();
 
 	//
 	WriteMiniNetLog(FormatW(L"log: MiniNet::Disconnect(): <%d> Disconnect. socket %d", pConnector->GetIndex(), pConnector->GetSocket()));

@@ -7,6 +7,7 @@
 #include <time.h>
 #include <sys/timeb.h>
 #include <sqltypes.h>
+#include <string>
 
 //
 enum eTime
@@ -29,6 +30,20 @@ enum eTime
 //
 int GetTimeSec();
 INT64 GetTimeMilliSec();
+
+class CPerformanceCheck
+{
+private:
+	std::wstring m_wstrComment = {};
+
+	bool m_bUsePerformanceCount = true;
+	INT64 m_biPerformanceCount[2] = {0,};
+	INT64 m_biPerformance = 0;
+
+public:
+	CPerformanceCheck(std::wstring wstrComment);
+	~CPerformanceCheck();
+};
 
 //
 class CTimeSet

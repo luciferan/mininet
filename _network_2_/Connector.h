@@ -216,6 +216,8 @@ public:
 		{
 			CScopeLock lock(m_Lock);
 
+			pConnector->SetDeactive();
+
 			if( std::find(m_UsedConnectorList.begin(), m_UsedConnectorList.end(), pConnector) != m_UsedConnectorList.end() )
 			{
 				m_UsedConnectorList.remove(pConnector);

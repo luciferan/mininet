@@ -24,6 +24,7 @@ public:
 
 //
 extern CLog g_Log;
+extern CLog g_PerformanceLog;
 
 //
 #endif //__LOG_H__

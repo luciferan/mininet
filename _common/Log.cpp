@@ -1,7 +1,9 @@
 #include "Log.h"
+#include "util_Time.h"
 
 //
 CLog g_Log;
+CLog g_PerformanceLog;
 
 //
 CLog::CLog()
@@ -14,7 +16,8 @@ CLog::~CLog()
 
 void CLog::write(std::wstring wstr)
 {
-	wprintf(L"%s\n", wstr.c_str());
+	CTimeSet CurrTime;
+	wprintf(L"%d:%d:%d %s\n", CurrTime.GetHour(), CurrTime.GetMin(), CurrTime.GetSec(), wstr.c_str());
 
 	//
 	return;
@@ -30,7 +33,8 @@ void CLog::write(WCHAR *pFormat, ...)
 	va_end(args);
 
 	//
-	wprintf(L"%s\n", buffer);
+	CTimeSet CurrTime;
+	wprintf(L"%d:%d:%d %s\n", CurrTime.GetHour(), CurrTime.GetMin(), CurrTime.GetSec(), buffer);
 
 	//
 	return;
