@@ -42,14 +42,14 @@ CPerformanceCheck::~CPerformanceCheck()
 		QueryPerformanceFrequency((LARGE_INTEGER*)&freq);
 
 		m_biPerformance = (m_biPerformanceCount[1] - m_biPerformanceCount[0]) / (freq / 1000000);
-		g_PerformanceLog.write(L"Performance(us): %s (%I64d)", m_wstrComment.c_str(), m_biPerformance);
+		g_PerformanceLog.Write(L"Performance(us): %s (%I64d)", m_wstrComment.c_str(), m_biPerformance);
 	}
 	else
 	{
 		m_biPerformanceCount[1] = GetTimeMilliSec();
 
 		m_biPerformance = (m_biPerformanceCount[1] - m_biPerformanceCount[0]);
-		g_PerformanceLog.write(L"Performance(ms): %s (%I64d)", m_wstrComment.c_str(), m_biPerformance);
+		g_PerformanceLog.Write(L"Performance(ms): %s (%I64d)", m_wstrComment.c_str(), m_biPerformance);
 	}
 }
 

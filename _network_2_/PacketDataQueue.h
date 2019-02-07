@@ -9,7 +9,7 @@
 
 #include "Buffer.h"
 #include "../_common/SafeLock.h"
-#include "../_common/Protocol.h"
+//#include "../_network_2_/Packet.h"
 
 //
 enum ePacketDataQueue

@@ -3,7 +3,8 @@
 #include "./MiniNet.h"
 
 #include "../_common/util_Time.h"
-
+#include "../_common/util_String.h"
+#include "../_common/log.h"
 
 //
 CConnector::CConnector(DWORD dwUniqueIndex)
@@ -35,11 +36,11 @@ bool CConnector::Finalize()
 
 void CConnector::SetDomain(WCHAR *pwcsDomain, WORD wPort)
 {
-	wcsncpy_s(m_wcsDomain, eSession::MAX_LEN_DOMAIN_STRING, pwcsDomain, wcslen(pwcsDomain));
+	wcsncpy_s(m_wcsDomain, eNetwork::MAX_LEN_DOMAIN_STRING, pwcsDomain, wcslen(pwcsDomain));
 	m_wPort = wPort;
 
 	size_t converted = 0;
-	wcstombs_s(&converted, m_szDomain, eSession::MAX_LEN_DOMAIN_STRING, m_wcsDomain, eSession::MAX_LEN_DOMAIN_STRING);
+	wcstombs_s(&converted, m_szDomain, eNetwork::MAX_LEN_DOMAIN_STRING, m_wcsDomain, eNetwork::MAX_LEN_DOMAIN_STRING);
 
 	return;
 }
@@ -51,7 +52,7 @@ void CConnector::GetSocket2IP(char *pszIP)
 
 	getpeername(m_Socket, (sockaddr*)&SockAddr, &iLen);
 	//strncpy_s(pszIP, eSession::MAX_LEN_IP4_STRING, inet_ntoa(SockAddr.sin_addr), iLen);
-	inet_ntop(AF_INET, &SockAddr.sin_addr, pszIP, eSession::MAX_LEN_IP4_STRING);
+	inet_ntop(AF_INET, &SockAddr.sin_addr, pszIP, eNetwork::MAX_LEN_IP4_STRING);
 }
 
 void CConnector::ConvertSocket2IP()
@@ -64,11 +65,11 @@ void CConnector::ConvertSocket2IP()
 	inet_ntop(AF_INET, &SockAddr.sin_addr, m_szDomain, _countof(m_szDomain));
 
 	size_t convert = 0;
-	mbstowcs_s(&convert, m_wcsDomain, eSession::MAX_LEN_IP4_STRING, m_szDomain, eSession::MAX_LEN_IP4_STRING);
+	mbstowcs_s(&convert, m_wcsDomain, eNetwork::MAX_LEN_IP4_STRING, m_szDomain, eNetwork::MAX_LEN_IP4_STRING);
 }
 
 //
-int CConnector::AddSendData(char *pSendData, DWORD dwSendDataSize)
+eResultCode CConnector::AddSendData(char *pSendData, DWORD dwSendDataSize)
 {
 	return CMiniNet::GetInstance().Write(this, pSendData, dwSendDataSize);
 }
@@ -201,32 +202,13 @@ int CConnector::RecvComplete(DWORD dwRecvSize)
 		//
 		CRecvPacketQueue::GetInstance().Push(pPacket);
 	}
+	else
+	{
+		return -1;
+	}
 
 	return m_RecvDataBuffer.GetDataSize();
 }
-
-int CConnector::DataParsing()
-{
-	int nPacketLength = 0;
-	m_RecvDataBuffer.Read((char*)&nPacketLength, sizeof(int));
-
-	if( m_RecvDataBuffer.GetDataSize() < nPacketLength )
-		return 0;
-
-	return nPacketLength;
-}
-
-//int CConnector::DataParsing()
-//{
-//	int nPacketLength = 0;
-//	m_RecvDataBuffer.Read((char*)&nPacketLength, sizeof(int));
-//	nPacketLength = htonl(nPacketLength);
-//
-//	if( m_RecvDataBuffer.GetDataSize() < nPacketLength )
-//		return 0;
-//
-//	return nPacketLength;
-//}
 
 WSABUF* CConnector::GetRecvWSABuffer()
 {
@@ -295,24 +277,4 @@ WSABUF* CConnector::GetInnerWSABuffer()
 	//if( m_InnerRequest.pBuffer )
 	return &m_InnerRequest.pBuffer->m_WSABuffer;
 	//return nullptr;
-}
-
-void CConnector::DoUpdate(INT64 biCurrTime)
-{
-	if( m_biUpdateTime < biCurrTime )
-	{
-		m_biUpdateTime = biCurrTime + MILLISEC_A_SEC;
-	}
-
-	//
-	if( m_biHeartBeatTime < biCurrTime )
-	{
-		m_biHeartBeatTime = biCurrTime + MILLISEC_A_SEC;
-
-		//
-	}
-
-	//
-	
-	return;
 }

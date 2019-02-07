@@ -33,4 +33,5 @@ public:
 	static LONG WINAPI makeDump(LPEXCEPTION_POINTERS lpExceptionPointer, MINIDUMP_TYPE dumpType);
 };
 
+//
 #endif //__EXCEPTIONREPORT_H__

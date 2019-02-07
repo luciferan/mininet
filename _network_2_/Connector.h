@@ -7,25 +7,21 @@
 #include <WS2tcpip.h>
 #include <Windows.h>
 
-#include "Buffer.h"
-#include "../_common/SafeLock.h"
-
 #include <unordered_map>
 #include <queue>
 #include <list>
 
-using namespace std;
+#include "MiniNet_Header.h"
+#include "Buffer.h"
+
+#include "../_common/SafeLock.h"
+#include "../_common/util_String.h"
 
 //
+using namespace std;
 class CConnector;
 
 //
-enum eSession
-{
-	MAX_LEN_IP4_STRING = 16,
-	MAX_LEN_DOMAIN_STRING = 1024,
-};
-
 struct OVERLAPPED_EX
 {
 	OVERLAPPED overlapped = {0,};
@@ -42,7 +38,8 @@ class CConnector
 {
 protected:
 	DWORD m_dwUniqueIndex = 0;
-	DWORD m_dwActive;
+	//DWORD m_dwUsed = 0;
+	//DWORD m_dwActive = 0;
 
 	void *m_pParam = nullptr;
 
@@ -51,8 +48,8 @@ protected:
 public:
 	SOCKADDR_IN m_SockAddr = {0,};
 
-	char m_szDomain[eSession::MAX_LEN_DOMAIN_STRING + 1] = {0,};
-	WCHAR m_wcsDomain[eSession::MAX_LEN_DOMAIN_STRING + 1] = {0,};
+	char m_szDomain[eNetwork::MAX_LEN_DOMAIN_STRING + 1] = {0,};
+	WCHAR m_wcsDomain[eNetwork::MAX_LEN_DOMAIN_STRING + 1] = {0,};
 	WORD m_wPort = 0;
 
 	// send
@@ -73,8 +70,8 @@ public:
 	DWORD m_dwInnerRef = 0;
 
 	//
-	INT64 m_biUpdateTime = 0;
-	INT64 m_biHeartBeatTime = 0;
+	INT64 m_biUpdateTimer = 0;
+	INT64 m_biHeartbeatTimer = 0;
 
 	//
 public:
@@ -87,15 +84,17 @@ public:
 	DWORD GetUniqueIndex() { return m_dwUniqueIndex; }
 	DWORD GetIndex() { return m_dwUniqueIndex; }
 	
-	void SetActive() { InterlockedExchange(&m_dwActive, 1); }
-	void SetDeactive() { InterlockedExchange(&m_dwActive, 0); }
-	DWORD GetActive() { return InterlockedExchange(&m_dwActive, m_dwActive); }
+	//void SetActive() { InterlockedExchange(&m_dwActive, 1); }
+	//void SetDeactive() { InterlockedExchange(&m_dwActive, 0); }
+	//DWORD GetActive() { return InterlockedExchange(&m_dwActive, m_dwActive); }
 
 	void* SetParam(void *pParam) { return m_pParam = pParam; }
 	void* GetParam() { return m_pParam; }
+	bool GetUsed() { return (nullptr != m_pParam); }
 
 	SOCKET SetSocket(SOCKET socket) { return m_Socket = socket; }
 	SOCKET GetSocket() { return m_Socket; }
+	bool GetActive() { return (INVALID_SOCKET != m_Socket); }
 
 	void SetDomain(WCHAR *pwcsDomain, WORD wPort);
 	void GetSocket2IP(char *pszIP);
@@ -106,7 +105,7 @@ public:
 	WORD GetPort() { return m_wPort; }
 
 	// send
-	int AddSendData(char *pSendData, DWORD dwSendDataSize);
+	eResultCode AddSendData(char *pSendData, DWORD dwSendDataSize);
 	int AddSendQueue(char *pSendData, DWORD dwSendDataSize); // ret: sendqueue.size
 	int SendPrepare(); //ret: send data size
 	int SendComplete(DWORD dwSendSize); // ret: remain send data size
@@ -140,7 +139,10 @@ public:
 	DWORD GetInnerRef() { return m_dwInnerRef; }
 
 	//
-	virtual void DoUpdate(INT64 biCurrTime);
+	bool CheckUpdateTimer(INT64 biCurrTime) { return (m_biUpdateTimer < biCurrTime); }
+	bool DoUpdate(INT64 biCurrTime);
+	bool CheckHeartbeat(INT64 biCurrTime);
+	wstring GetStateReport();
 };
 
 //
@@ -216,7 +218,7 @@ public:
 		{
 			CScopeLock lock(m_Lock);
 
-			pConnector->SetDeactive();
+			//pConnector->SetDeactive();
 
 			if( std::find(m_UsedConnectorList.begin(), m_UsedConnectorList.end(), pConnector) != m_UsedConnectorList.end() )
 			{
@@ -224,6 +226,18 @@ public:
 				m_FreeConnectorList.push_back(pConnector);
 			}
 		}
+	}
+
+	wstring GetStateReport()
+	{
+		wstring wstrState = {};
+
+		{
+			CScopeLock lock(m_Lock);
+			wstrState.append(FormatW(L"pool:%d, used:%d, free:%d", m_ConnectorList.size(), m_UsedConnectorList.size(), m_FreeConnectorList.size()));
+		}
+
+		return wstrState;
 	}
 };
 

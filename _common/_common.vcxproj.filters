@@ -63,9 +63,6 @@
     <ClInclude Include="SafeLock.h">
       <Filter>_util</Filter>
     </ClInclude>
-    <ClInclude Include="Protocol.h">
-      <Filter>Protocol</Filter>
-    </ClInclude>
     <ClInclude Include="DefaultConfig.h" />
   </ItemGroup>
 </Project>

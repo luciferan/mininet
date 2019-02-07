@@ -116,13 +116,17 @@
     <ClCompile Include="Buffer.cpp" />
     <ClCompile Include="Connector.cpp" />
     <ClCompile Include="MiniNet.cpp" />
+    <ClCompile Include="Packet.cpp" />
     <ClCompile Include="PacketDataQueue.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Buffer.h" />
     <ClInclude Include="Connector.h" />
     <ClInclude Include="MiniNet.h" />
+    <ClInclude Include="MiniNet_Header.h" />
+    <ClInclude Include="Packet.h" />
     <ClInclude Include="PacketDataQueue.h" />
+    <ClInclude Include="Packet_Protocol.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -11,11 +11,14 @@
 #include "../_common/SafeLock.h"
 
 //
-#ifndef IN
-#define IN
+#ifndef PARAM_IN
+#define PARAM_IN
 #endif //
-#ifndef OUT
-#define OUT
+#ifndef PARAM_OUT
+#define PARAM_OUT
+#endif //
+#ifndef PARAM_INOUT
+#define PARAM_INOUT
 #endif //
 
 //
@@ -24,7 +27,7 @@ class CConnector;
 //
 enum eBuffer
 {
-	MAX_PACKET_BUFFER_SIZE = 1024*10,
+	MAX_PACKET_BUFFER_SIZE = 128, //1024 * 10,
 };
 
 //

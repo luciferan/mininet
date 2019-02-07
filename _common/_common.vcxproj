@@ -138,7 +138,6 @@
     <ClInclude Include="ExceptionReport.h" />
     <ClInclude Include="Log.h" />
     <ClInclude Include="MemoryPool.h" />
-    <ClInclude Include="Protocol.h" />
     <ClInclude Include="SafeLock.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="util_common.h" />

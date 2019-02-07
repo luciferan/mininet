@@ -18,23 +18,27 @@
 //#include "PacketDataQueue.h"
 //#include "../_common/util.h"
 //#include "../_common/ExceptionReport.h"
+#include "MiniNet_Header.h"
 
 //
-enum eNetwork
-{
-	RESULT_SUCC = 0,
-	RESULT_FAIL = 1,
-	RESULT_TIME_OUT,
-	RESULT_IO_PENDING,
-	RESULT_SOCKET_DISCONNECTED,
+//enum class eNetworkResult
+//{
+//	RESULT_SUCC = 0,
+//	RESULT_FAIL = 1,
+//	RESULT_TIME_OUT,
+//	RESULT_IO_PENDING,
+//	RESULT_SOCKET_DISCONNECTED,
+//};
 
-	MAX_THREAD_COUNT = 1,
-
-	MAX_LEN_IPV4_STRING = 16,
-	MAX_LEN_HOST_DOMAIN = 1024,
-
-	MAX_LOG_BUFFER_SIZE = 1024 * 10,
-};
+//enum eNetwork
+//{
+//	MAX_THREAD_COUNT = 1,
+//
+//	MAX_LEN_IP4_STRING = 16,
+//	MAX_LEN_HOST_DOMAIN = 1024,
+//
+//	MAX_LOG_BUFFER_SIZE = 1024 * 10,
+//};
 
 class CConnector;
 
@@ -49,8 +53,8 @@ public:
 	HANDLE m_hUpdateThread = INVALID_HANDLE_VALUE;
 
 	//
-	char m_szListenIP[eNetwork::MAX_LEN_IPV4_STRING + 1] = {0,};
-	WCHAR m_wcsListenIP[eNetwork::MAX_LEN_IPV4_STRING + 1] = {0,};
+	char m_szListenIP[eNetwork::MAX_LEN_IP4_STRING + 1] = {0,};
+	WCHAR m_wcsListenIP[eNetwork::MAX_LEN_IP4_STRING + 1] = {0,};
 	WORD m_wListenPort = 0;
 
 	SOCKET m_ListenSock = INVALID_SOCKET;
@@ -58,6 +62,8 @@ public:
 
 	//
 	DWORD m_dwRunning = 0;
+	DWORD m_dwListening = 0;
+	INT64 m_biUpdateTime = 0;
 
 	//
 private:
@@ -78,9 +84,15 @@ public:
 	bool ListenStart(WCHAR *pwcsListenIP, const WORD wListenPort);
 	bool Stop();
 
+	bool AcceptRestart();
+	bool AcceptStop();
+	bool AcceptStart();
+
 	static unsigned int WINAPI AcceptThread(void *p);
 	static unsigned int WINAPI WorkerThread(void *p);
 	static unsigned int WINAPI UpdateThread(void *p);
+
+	eResultCode DoUpdate(INT64 biCurrTime);
 
 	bool lookup_host(const char *hostname, std::string &hostIP);
 	bool Listen(WCHAR *pwcsListenIP, const WORD wListenPort);
@@ -89,8 +101,8 @@ public:
 	bool Disconnect(CConnector *pSession);
 	bool Disconnect(SOCKET socket);
 	
-	int Write(CConnector *pSession, char *pSendData, int iSendDataSize);
-	int InnerWrite(CConnector *pSession, char *pSendData, int nSendDataSize);
+	eResultCode Write(CConnector *pSession, char *pSendData, int iSendDataSize);
+	eResultCode InnerWrite(CConnector *pSession, char *pSendData, int nSendDataSize);
 };
 
 //

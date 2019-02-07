@@ -12,11 +12,13 @@
 CMiniNet::CMiniNet(void)
 {
 	InterlockedExchange((LONG*)&m_dwRunning, 0);
+	InterlockedExchange((LONG*)&m_dwListening, 0);
 }
 
 CMiniNet::~CMiniNet(void)
 {
 	InterlockedExchange((LONG*)&m_dwRunning, 0);
+	InterlockedExchange((LONG*)&m_dwListening, 0);
 	Finalize();
 }
 
@@ -71,6 +73,7 @@ bool CMiniNet::Finalize()
 
 bool CMiniNet::Start()
 {
+	//
 	InterlockedExchange((LONG*)&m_dwRunning, 1);
 
 	for( int iIndex = 0; iIndex < eNetwork::MAX_THREAD_COUNT; ++iIndex )
@@ -79,11 +82,18 @@ bool CMiniNet::Start()
 			ResumeThread(m_hWorkerThread[iIndex]);
 	}
 
+	//
+	{
+		if( INVALID_HANDLE_VALUE != m_hUpdateThread )
+			ResumeThread(m_hUpdateThread);
+	}
+
+	//
+	InterlockedExchange((LONG*)&m_dwListening, 1);
+
 	{
 		if( INVALID_HANDLE_VALUE != m_hAcceptThread )
 			ResumeThread(m_hAcceptThread);
-		if( INVALID_HANDLE_VALUE != m_hUpdateThread )
-			ResumeThread(m_hUpdateThread);
 	}
 
 	//
@@ -102,6 +112,7 @@ bool CMiniNet::ListenStart(WCHAR *pwcsListenIP, const WORD wListenPort)
 
 bool CMiniNet::Stop()
 {
+	InterlockedExchange((LONG*)&m_dwListening, 0);
 	InterlockedExchange((LONG*)&m_dwRunning, 0);
 
 	//
@@ -130,6 +141,62 @@ bool CMiniNet::Stop()
 	return true;
 }
 
+bool CMiniNet::AcceptRestart()
+{
+	InterlockedExchange((LONG*)&m_dwListening, 0);
+
+	if( INVALID_SOCKET != m_ListenSock )
+		closesocket(m_ListenSock);
+	memset((void*)&m_ListenAddr, 0, sizeof(m_ListenAddr));
+
+	WaitForSingleObject(m_hAcceptThread, INFINITE);
+
+	//
+	if( false == Listen(m_wcsListenIP, m_wListenPort) )
+	{
+		g_Log.Write(L"error: CMiniNet::AcceptRestart(): Listen() fail");
+		return false;
+	}
+
+	//
+	InterlockedExchange((LONG*)&m_dwListening, 1);
+	if( INVALID_HANDLE_VALUE != m_hAcceptThread )
+		ResumeThread(m_hAcceptThread);
+
+	//
+	return true;
+}
+
+bool CMiniNet::AcceptStop()
+{
+	InterlockedExchange((LONG*)&m_dwListening, 0);
+
+	if( INVALID_SOCKET != m_ListenSock )
+		closesocket(m_ListenSock);
+	memset((void*)&m_ListenAddr, 0, sizeof(m_ListenAddr));
+
+	WaitForSingleObject(m_hAcceptThread, INFINITE);
+
+	return true;
+}
+
+bool CMiniNet::AcceptStart()
+{
+	if( false == Listen(m_wcsListenIP, m_wListenPort) )
+	{
+		g_Log.Write(L"error: CMiniNet::AcceptRestart(): Listen() fail");
+		return false;
+	}
+
+	//
+	InterlockedExchange((LONG*)&m_dwListening, 1);
+	if( INVALID_HANDLE_VALUE != m_hAcceptThread )
+		ResumeThread(m_hAcceptThread);
+
+	//
+	return true;
+}
+
 unsigned int WINAPI CMiniNet::AcceptThread(void *p)
 {
 	CMiniNet &Net = CMiniNet::GetInstance();
@@ -138,7 +205,8 @@ unsigned int WINAPI CMiniNet::AcceptThread(void *p)
 	//
 	HANDLE &hNetworkHandle = Net.m_hNetworkHandle;
 
-	DWORD &dwRunning = Net.m_dwRunning;
+	//DWORD &dwRunning = Net.m_dwRunning;
+	DWORD &dwRunning = Net.m_dwListening;
 	SOCKET &ListenSock = Net.m_ListenSock;
 
 	CConnector *pConnector = nullptr;
@@ -152,6 +220,7 @@ unsigned int WINAPI CMiniNet::AcceptThread(void *p)
 
 	//
 	WriteMiniNetLog(L"log: MiniNet::AcceptThread() : start");
+	g_Log.Write(L"log: MiniNet::AcceptThread() : start");
 
 	while( 1 == InterlockedExchange((long*)&dwRunning, dwRunning) )
 	{
@@ -200,7 +269,7 @@ unsigned int WINAPI CMiniNet::AcceptThread(void *p)
 			continue;
 		}
 
-		pConnector->SetActive();
+		//pConnector->SetActive();
 
 		//
 		if( 0 >= pConnector->RecvPrepare() )
@@ -338,7 +407,7 @@ unsigned int WINAPI CMiniNet::WorkerThread(void *p)
 						closesocket(pConnector->GetSocket());
 					}
 
-					ConnectMgr.ReleaseConnector(pConnector); //SAFE_DELETE(pConnector);
+					//ConnectMgr.ReleaseConnector(pConnector); //SAFE_DELETE(pConnector);
 				}
 			}
 			else
@@ -383,26 +452,33 @@ unsigned int WINAPI CMiniNet::WorkerThread(void *p)
 				WritePacketLog(FormatW(L"debug: MiniNet::WorkerThread(): <%d> RecvData: ", pConnector->GetIndex()), pNetworkBuffer->m_pBuffer, dwIOSize);
 
 				// 수신 완료
-				pConnector->RecvComplete(dwIOSize);
-
-				//
-				if( 0 < pConnector->RecvPrepare() )
+				int nResult = pConnector->RecvComplete(dwIOSize);
+				if( 0 > nResult )
 				{
-					// 계속 수신
-					iRet = WSARecv(pConnector->GetSocket(), pConnector->GetRecvWSABuffer(), 1, &dwRecvDataSize, &dwFlags, pConnector->GetRecvOverlapped(), NULL);
-					if( SOCKET_ERROR == iRet )
-					{
-						nErrorCode = WSAGetLastError();
-						if( WSA_IO_PENDING != nErrorCode )
-						{
-							WriteMiniNetLog(FormatW(L"error: MiniNet::WorkerThread(): <%d> WSARecv() fail. socket:%d. error:%d", pConnector->GetIndex(), pConnector->GetSocket(), nErrorCode));
-							Net.Disconnect(pConnector);
-						}
-					}
+					WriteMiniNetLog(FormatW(L"error: MiniNet::WorkerThread(): <%d> CConnector::RecvComplete() fail. socket:%d", pConnector->GetIndex(), pConnector->GetSocket()));
+					Net.Disconnect(pConnector);
 				}
 				else
 				{
-					WriteMiniNetLog(FormatW(L"error: MiniNet::WorkerThread(): <%d> CConnector::RecvPrepare() fail. socket:%d", pConnector->GetIndex(), pConnector->GetSocket()));
+					//
+					if( 0 < pConnector->RecvPrepare() )
+					{
+						// 계속 수신
+						iRet = WSARecv(pConnector->GetSocket(), pConnector->GetRecvWSABuffer(), 1, &dwRecvDataSize, &dwFlags, pConnector->GetRecvOverlapped(), NULL);
+						if( SOCKET_ERROR == iRet )
+						{
+							nErrorCode = WSAGetLastError();
+							if( WSA_IO_PENDING != nErrorCode )
+							{
+								WriteMiniNetLog(FormatW(L"error: MiniNet::WorkerThread(): <%d> WSARecv() fail. socket:%d. error:%d", pConnector->GetIndex(), pConnector->GetSocket(), nErrorCode));
+								Net.Disconnect(pConnector);
+							}
+						}
+					}
+					else
+					{
+						WriteMiniNetLog(FormatW(L"error: MiniNet::WorkerThread(): <%d> CConnector::RecvPrepare() fail. socket:%d", pConnector->GetIndex(), pConnector->GetSocket()));
+					}
 				}
 			}
 			break;
@@ -443,7 +519,7 @@ unsigned int WINAPI CMiniNet::WorkerThread(void *p)
 unsigned int WINAPI CMiniNet::UpdateThread(void *p)
 {
 	CMiniNet &Net = CMiniNet::GetInstance();
-	CConnectorMgr &ConnectMgr = CConnectorMgr::GetInstance();
+	CConnectorMgr &ConnectorMgr = CConnectorMgr::GetInstance();
 
 	//
 	DWORD &dwRunning = Net.m_dwRunning;
@@ -452,7 +528,9 @@ unsigned int WINAPI CMiniNet::UpdateThread(void *p)
 	void *pParam = nullptr;
 
 	INT64 biCurrTime = 0;
-	INT64 biLastUpdateLog = GetTimeMilliSec() + (MILLISEC_A_SEC * 30);
+	INT64 biReleaseCheck = GetTimeMilliSec() + (MILLISEC_A_SEC * 30);
+
+	std::list<CConnector*> ReleaseConnectorList = {};
 
 	//
 	while( 1 == InterlockedExchange((long*)&dwRunning, dwRunning) )
@@ -460,14 +538,37 @@ unsigned int WINAPI CMiniNet::UpdateThread(void *p)
 		biCurrTime = GetTimeMilliSec();
 
 		{
-			CScopeLock lock(ConnectMgr.m_Lock);
-			for( auto pConnector : ConnectMgr.m_UsedConnectorList )
+			CScopeLock lock(ConnectorMgr.m_Lock);
+			for( auto pConnector : ConnectorMgr.m_UsedConnectorList )
 			{
-				pConnector->DoUpdate(biCurrTime);
+				if( pConnector->DoUpdate(biCurrTime) )
+				{
+					if( false == pConnector->GetActive() && false == pConnector->GetUsed() )
+					{
+						ReleaseConnectorList.push_back(pConnector);
+						continue;
+					}
+				}
+
+				pConnector->CheckHeartbeat(biCurrTime);
 			}
 		}
 
-		
+		{
+			if( false == ReleaseConnectorList.empty() )
+			{
+				for( auto pConnector : ReleaseConnectorList )
+				{
+					ConnectorMgr.ReleaseConnector(pConnector);
+				}
+
+				ReleaseConnectorList.clear();
+			}
+		}
+
+		{
+			Net.DoUpdate(biCurrTime);
+		}
 
 		//
 		Sleep(1);
@@ -479,7 +580,7 @@ unsigned int WINAPI CMiniNet::UpdateThread(void *p)
 
 bool CMiniNet::Listen(WCHAR *pwcsListenIP, const WORD wListenPort)
 {
-	wcsncpy_s(m_wcsListenIP, eNetwork::MAX_LEN_IPV4_STRING, pwcsListenIP, wcslen(pwcsListenIP));
+	wcsncpy_s(m_wcsListenIP, eNetwork::MAX_LEN_IP4_STRING, pwcsListenIP, wcslen(pwcsListenIP));
 	m_wListenPort = wListenPort;
 
 	m_ListenSock = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
@@ -529,8 +630,8 @@ bool CMiniNet::lookup_host(const char *hostname, std::string &hostIP)
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags |= AI_CANONNAME;
 
-	char szDomain[eNetwork::MAX_LEN_HOST_DOMAIN + 1] = {0,};
-	strncpy_s(szDomain, eNetwork::MAX_LEN_HOST_DOMAIN, hostname, eNetwork::MAX_LEN_HOST_DOMAIN);
+	char szDomain[eNetwork::MAX_LEN_DOMAIN_STRING + 1] = {0,};
+	strncpy_s(szDomain, eNetwork::MAX_LEN_DOMAIN_STRING, hostname, eNetwork::MAX_LEN_DOMAIN_STRING);
 
 	int ret = getaddrinfo(szDomain, NULL, &hints, &result);
 	if( 0 == ret )
@@ -685,7 +786,7 @@ bool CMiniNet::Disconnect(CConnector *pConnector)
 		return false;
 	}
 
-	pConnector->SetDeactive();
+	//pConnector->SetDeactive();
 
 	//
 	WriteMiniNetLog(FormatW(L"log: MiniNet::Disconnect(): <%d> Disconnect. socket %d", pConnector->GetIndex(), pConnector->GetSocket()));
@@ -719,24 +820,24 @@ bool CMiniNet::Disconnect(SOCKET socket)
 	return true;
 }
 
-int CMiniNet::Write(CConnector *pConnector, char *pSendData, int iSendDataSize)
+eResultCode CMiniNet::Write(CConnector *pConnector, char *pSendData, int iSendDataSize)
 {
 	if( !pConnector )
 	{
 		WriteMiniNetLog(FormatW(L"error: MiniNet::Write(): Invalid session object %08X %d", pConnector, (pConnector ? pConnector->GetIndex() : -1)));
-		return eNetwork::RESULT_FAIL;
+		return eResultCode::RESULT_FAIL;
 	}
 	if( INVALID_SOCKET == pConnector->GetSocket() )
 	{
 		WriteMiniNetLog(FormatW(L"error: MiniNet::Write(): <%d> Invalid socket %d", pConnector->GetIndex(), pConnector->GetSocket()));
-		return eNetwork::RESULT_SOCKET_DISCONNECTED;
+		return eResultCode::RESULT_SOCKET_DISCONNECTED;
 	}
 
 	// 전송데이터 셋팅
 	if( 0 > pConnector->AddSendQueue(pSendData, iSendDataSize) )
 	{
 		WriteMiniNetLog(FormatW(L"error: MiniNet::Write(): <%d> Invalid send data %d", pConnector->GetIndex(), pConnector->GetSocket()));
-		return eNetwork::RESULT_FAIL;
+		return eResultCode::RESULT_FAIL;
 	}
 
 	//
@@ -746,7 +847,7 @@ int CMiniNet::Write(CConnector *pConnector, char *pSendData, int iSendDataSize)
 		if( 0 > pConnector->SendPrepare() )
 		{
 			WriteMiniNetLog(FormatW(L"error: MiniNet::Write(): <%d> SendPrepare() fail", pConnector->GetIndex()));
-			return eNetwork::RESULT_FAIL;
+			return eResultCode::RESULT_FAIL;
 		}
 
 		//
@@ -759,26 +860,26 @@ int CMiniNet::Write(CConnector *pConnector, char *pSendData, int iSendDataSize)
 			if( WSA_IO_PENDING != nErrorCode )
 			{
 				WriteMiniNetLog(FormatW(L"error: MiniNet::Write(): <%d> WSASend() fail. socket:%d. error:%d", pConnector->GetIndex(), pConnector->GetSocket(), nErrorCode));
-				return eNetwork::RESULT_FAIL;
+				return eResultCode::RESULT_FAIL;
 			}
 		}
 	}
 
 	//
-	return eNetwork::RESULT_SUCC;
+	return eResultCode::RESULT_SUCC;
 }
 
-int CMiniNet::InnerWrite(CConnector *pConnector, char *pSendData, int nSendDataSize)
+eResultCode CMiniNet::InnerWrite(CConnector *pConnector, char *pSendData, int nSendDataSize)
 {
 	if( !pConnector )
 	{
 		WriteMiniNetLog(FormatW(L"error: MiniNet::InnerWrite(): Invalid session object %08X %d", pConnector, (pConnector ? pConnector->GetIndex() : -1)));
-		eNetwork::RESULT_FAIL;
+		eResultCode::RESULT_FAIL;
 	}
 	if( INVALID_SOCKET == pConnector->GetSocket() )
 	{
 		WriteMiniNetLog(FormatW(L"error: MiniNet::InnerWrite(): <%d> Invalid socket %d", pConnector->GetIndex(), pConnector->GetSocket()));
-		eNetwork::RESULT_FAIL;
+		eResultCode::RESULT_FAIL;
 	}
 
 	// 데이터 셋팅
@@ -791,7 +892,7 @@ int CMiniNet::InnerWrite(CConnector *pConnector, char *pSendData, int nSendDataS
 		if( 0 > pConnector->InnerPrepare() )
 		{
 			WriteMiniNetLog(FormatW(L"error: MiniNet::InnerWrite(): <%d> InnerPrepare() fail", pConnector->GetIndex()));
-			return eNetwork::RESULT_FAIL;
+			return eResultCode::RESULT_FAIL;
 		}
 
 		BOOL bRet = PostQueuedCompletionStatus(m_hNetworkHandle, nSendDataSize, (ULONG_PTR)pConnector, pConnector->GetInnerOverlapped());
@@ -799,17 +900,20 @@ int CMiniNet::InnerWrite(CConnector *pConnector, char *pSendData, int nSendDataS
 		{
 			int nErrorCode = GetLastError();
 			WriteMiniNetLog(FormatW(L"error: MiniNet::InnerWrite(): <%d> PostQueuedCompletionStatus() fail. socket:%d. error:%d", pConnector->GetIndex(), pConnector->GetSocket(), nErrorCode));
-			return eNetwork::RESULT_FAIL;
+			return eResultCode::RESULT_FAIL;
 		}
 	}
 
 	//
-	return eNetwork::RESULT_SUCC;
+	return eResultCode::RESULT_SUCC;
 }
 
 //
 void WritePacketLog(std::wstring str, const char *pPacketData, int nPacketDataSize)
 {
+	return;
+
+	//
 	WCHAR wcsLogBuffer[eBuffer::MAX_PACKET_BUFFER_SIZE + 1024 + 1] = {0,};
 
 	int nLen = 0;
