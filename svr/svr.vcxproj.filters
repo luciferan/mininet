@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="_network_implement">
+      <UniqueIdentifier>{dfe7a07d-c929-47a0-815a-f9f0f4c79a8b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="svr">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="_config">
+      <UniqueIdentifier>{5c99f302-ea06-4f87-a3d3-174ca3df868f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>svr</Filter>
+    </ClCompile>
+    <ClCompile Include="Process.cpp">
+      <Filter>svr</Filter>
+    </ClCompile>
+    <ClCompile Include="UserSession.cpp">
+      <Filter>svr</Filter>
+    </ClCompile>
+    <ClCompile Include="Config.cpp">
+      <Filter>_config</Filter>
+    </ClCompile>
+    <ClCompile Include="MiniNet_impl.cpp">
+      <Filter>_network_implement</Filter>
+    </ClCompile>
+    <ClCompile Include="Connector_impl.cpp">
+      <Filter>_network_implement</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Config.h">
+      <Filter>_config</Filter>
+    </ClInclude>
+    <ClInclude Include="UserSession.h">
+      <Filter>svr</Filter>
+    </ClInclude>
+    <ClInclude Include="Process.h">
+      <Filter>svr</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\bin\config\svr.ini">
+      <Filter>_config</Filter>
+    </None>
+  </ItemGroup>
+</Project>

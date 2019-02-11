@@ -1,0 +1,32 @@
+#pragma once
+#ifndef __MININET_HEADER_H__
+#define __MININET_HEADER_H__
+
+//
+enum eResultCode
+{
+	RESULT_SUCC = 0,
+	RESULT_FAIL = 1,
+
+	RESULT_INVALID_PACKET,
+	RESULT_SOCKET_DISCONNECTED,
+
+	RESULT_PENDING,
+};
+
+enum eNetwork
+{
+	MAX_THREAD_COUNT = 1,
+
+	MAX_LEN_IP4_STRING = 16,
+	MAX_LEN_DOMAIN_STRING = 1024,
+
+	MAX_LOG_BUFFER_SIZE = 1024 * 10,
+};
+
+enum eConnector
+{
+};
+
+//
+#endif //__MININET_HEADER_H__

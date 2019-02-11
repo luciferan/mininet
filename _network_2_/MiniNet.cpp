@@ -251,6 +251,10 @@ unsigned int WINAPI CMiniNet::AcceptThread(void *p)
 			closesocket(AcceptSock);
 			continue;
 		}
+		else
+		{
+			WriteMiniNetLog(FormatW(L"log: MiniNet::AcceptThread() : <%d> connector create. socket:%d", pConnector->GetIndex(), AcceptSock));
+		}
 
 		//
 		pConnector->SetSocket(AcceptSock);
@@ -351,7 +355,9 @@ unsigned int WINAPI CMiniNet::WorkerThread(void *p)
 			//if( ERROR_NETNAME_DELETED == nErrorCode )
 			{
 				if( pConnector )
+				{
 					Net.Disconnect(pConnector);
+				}
 			}
 
 			continue;
@@ -389,6 +395,12 @@ unsigned int WINAPI CMiniNet::WorkerThread(void *p)
 			{
 				WriteMiniNetLog(FormatW(L"log: MiniNet::WorkerThread() : <%d> Disconnect. IP %s, Socket %d", pConnector->GetIndex(), pConnector->GetDomain(), pConnector->GetSocket()));
 
+				if( INVALID_SOCKET != pConnector->GetSocket() )
+				{
+					shutdown(pConnector->GetSocket(), SD_BOTH);
+					closesocket(pConnector->GetSocket());
+				}
+
 				//
 				if( pConnector->GetSendRef() || pConnector->GetRecvRef() || pConnector->GetInnerRef() )
 				{
@@ -399,15 +411,10 @@ unsigned int WINAPI CMiniNet::WorkerThread(void *p)
 						case eNetworkBuffer::OP_INNER: pConnector->DecInnerRef(); break;
 					}
 				}
-				else
+				
+				if( 0 >= pConnector->GetSendRef() || 0 >= pConnector->GetRecvRef() || 0 >= pConnector->GetInnerRef() )
 				{
-					if( INVALID_SOCKET != pConnector->GetSocket() )
-					{
-						shutdown(pConnector->GetSocket(), SD_BOTH);
-						closesocket(pConnector->GetSocket());
-					}
-
-					//ConnectMgr.ReleaseConnector(pConnector); //SAFE_DELETE(pConnector);
+					ConnectMgr.ReleaseConnector(pConnector); //SAFE_DELETE(pConnector);
 				}
 			}
 			else
@@ -798,10 +805,10 @@ bool CMiniNet::Disconnect(CConnector *pConnector)
 		closesocket(pConnector->GetSocket());
 	}
 
-	PostQueuedCompletionStatus(m_hNetworkHandle, 0, (ULONG_PTR)pConnector, pConnector->GetRecvOverlapped());
+	pConnector->SetSocket(INVALID_SOCKET);
 
 	//
-	pConnector->SetSocket(INVALID_SOCKET);
+	if( pConnector->GetRecvRef() ) PostQueuedCompletionStatus(m_hNetworkHandle, 0, (ULONG_PTR)pConnector, pConnector->GetRecvOverlapped());
 
 	//
 	return true;
